@@ -1,0 +1,163 @@
+[
+  {
+    "customer": "1176253104119894059",
+    "product": "Netflix 4K",
+    "period": " 6 månader",
+    "price": " 39 kr",
+    "payment": " Swish",
+    "seller": "1176253104119894059",
+    "date": "2026-03-07T02:57:45.041Z"
+  },
+  {
+    "customer": "1176253104119894059",
+    "product": "Spotify premium",
+    "period": " Lifetime ",
+    "price": " 79 kr",
+    "payment": " Paypal",
+    "seller": "1176253104119894059",
+    "date": "2026-03-07T03:00:08.785Z"
+  },
+  {
+    "customer": "1176253104119894059",
+    "product": "cs2",
+    "period": " acc",
+    "price": " 89 kr",
+    "payment": " Swish",
+    "seller": "1176253104119894059",
+    "date": "2026-03-07T04:03:02.321Z"
+  },
+  {
+    "customer": "1176253104119894059",
+    "product": "cs2",
+    "period": " acc",
+    "price": " 89 kr",
+    "payment": " Swish",
+    "seller": "1176253104119894059",
+    "date": "2026-03-07T04:07:12.569Z"
+  },
+  {
+    "customer": "1176253104119894059",
+    "product": "UFC",
+    "period": " lifetime key",
+    "price": " 69kr",
+    "payment": " swish",
+    "seller": "1176253104119894059",
+    "date": "2026-03-08T13:18:50.420Z"
+  },
+  {
+    "customer": "1176253104119894059",
+    "product": "Ufc,",
+    "period": "lifetime",
+    "price": "key,",
+    "payment": "271kr,",
+    "seller": "1176253104119894059",
+    "date": "2026-03-08T13:36:23.286Z"
+  },
+  {
+    "id": 7,
+    "customer": "1128696241673486336",
+    "product": "ufc,",
+    "period": "6m,",
+    "price": "250kr,",
+    "payment": "swish",
+    "seller": "1176253104119894059",
+    "date": "2026-03-08T13:47:12.146Z"
+  },
+  {
+    "id": 8,
+    "customer": "1176253104119894059",
+    "product": "ufc",
+    "period": "6",
+    "price": "månader",
+    "payment": "250kr",
+    "seller": "1176253104119894059",
+    "date": "2026-03-08T13:48:25.593Z"
+  },
+  {
+    "id": 9,
+    "customer": "1176253104119894059",
+    "product": "ufc",
+    "period": "6",
+    "price": "månader",
+    "payment": "250kr",
+    "seller": "1176253104119894059",
+    "date": "2026-03-08T13:49:27.381Z"
+  },
+  {
+    "id": 10,
+    "customer": "1176253104119894059",
+    "product": "netflix",
+    "period": "lifetime",
+    "price": "50kr",
+    "payment": "swish",
+    "seller": "1176253104119894059",
+    "ticketChannelId": "1480208302020231239",
+    "date": "2026-03-08T14:20:14.966Z"
+  },
+  {
+    "id": 11,
+    "customer": "1176253104119894059",
+    "product": "Netflix",
+    "price": "50kr",
+    "payment": "swish",
+    "period": "4 månader",
+    "seller": "1176253104119894059",
+    "ticketChannelId": "1480210163196498041",
+    "date": "2026-03-08T14:27:03.727Z"
+  },
+  {
+    "id": 12,
+    "customer": "1109534815151202345",
+    "product": "Spotify premium",
+    "price": "69",
+    "payment": "swish",
+    "period": "lifetime key",
+    "seller": "1176253104119894059",
+    "ticketChannelId": "1480215494547083403",
+    "date": "2026-03-08T14:48:28.457Z"
+  },
+  {
+    "id": 13,
+    "customer": "1109534815151202345",
+    "product": "Spotify premium",
+    "price": "69kr",
+    "payment": "swish",
+    "period": "lifetime key",
+    "seller": "1176253104119894059",
+    "ticketChannelId": "1480215494547083403",
+    "date": "2026-03-08T14:48:35.434Z"
+  },
+  {
+    "id": 14,
+    "customer": "1109534815151202345",
+    "product": "Spotify premium",
+    "price": "69kr",
+    "payment": "swish",
+    "period": "lifetime key",
+    "seller": "1176253104119894059",
+    "ticketChannelId": "1480218736056205382",
+    "date": "2026-03-08T15:01:09.311Z"
+  },
+  {
+    "id": 15,
+    "customer": "1176294358350315610",
+    "product": "spotify",
+    "price": "69kr",
+    "payment": "swish",
+    "period": "lifetime",
+    "seller": "1176294358350315610",
+    "ticketChannelId": "1480324974295257149",
+    "date": "2026-03-08T22:03:39.708Z"
+  },
+  {
+    "id": 16,
+    "customer": "1176253104119894059",
+    "product": "-",
+    "price": "-",
+    "payment": "-",
+    "period": "-",
+    "seller": "1176253104119894059",
+    "ticketChannelId": "1480325944144035882",
+    "date": "2026-03-08T22:06:55.459Z"
+  }
+]
