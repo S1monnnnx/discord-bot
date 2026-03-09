@@ -1,3 +1,5 @@
+require("dotenv").config();
+
 const {
   Client,
   GatewayIntentBits,
@@ -29,6 +31,14 @@ const LOG_CHANNEL = "1480198632144638088";
 const REVIEW_CHANNEL = "1479523999154442260";
 const SELLER_ROLE_ID = "1480211256303685642";
 
+const CAR_TICKET_CATEGORY = "1059730120245518406";
+const CAR_ORDER_CHANNEL = "1480344798446616817";
+
+if (!TOKEN) {
+  console.error("❌ TOKEN saknas. Lägg in den i din .env-fil.");
+  process.exit(1);
+}
+
 const ticketOwners = {};
 const ticketOrders = {};
 
@@ -45,6 +55,34 @@ function loadOrders() {
 
 function saveOrders(orders) {
   fs.writeFileSync("orders.json", JSON.stringify(orders, null, 2));
+}
+
+function getTicketOwnerId(channel) {
+  if (ticketOwners[channel.id]) return ticketOwners[channel.id];
+
+  const topic = channel.topic || "";
+  const match = topic.match(/owner:(\d+)/);
+
+  if (match) {
+    ticketOwners[channel.id] = match[1];
+    return match[1];
+  }
+
+  return null;
+}
+
+function getOrderByChannelId(channelId) {
+  if (ticketOrders[channelId]) return ticketOrders[channelId];
+
+  const orders = loadOrders();
+  const found = orders.find(order => order.ticketChannelId === channelId);
+
+  if (found) {
+    ticketOrders[channelId] = found;
+    return found;
+  }
+
+  return null;
 }
 
 client.once("ready", () => {
@@ -70,6 +108,22 @@ client.on("messageCreate", async (message) => {
     await message.channel.send({ embeds: [embed], components: [row] });
   }
 
+  if (message.content === "!bilpanel") {
+    const embed = new EmbedBuilder()
+      .setTitle("🚗 Ams Shop – Bilavdelning")
+      .setDescription("Bilservice • Reservdelar • Styling")
+      .setColor("#7a3cff");
+
+    const button = new ButtonBuilder()
+      .setCustomId("create_car_ticket")
+      .setLabel("Skapa bil-ticket")
+      .setStyle(ButtonStyle.Primary);
+
+    const row = new ActionRowBuilder().addComponents(button);
+
+    await message.channel.send({ embeds: [embed], components: [row] });
+  }
+
   if (message.content === "!stats") {
     const orders = loadOrders();
 
@@ -88,7 +142,6 @@ client.on("messageCreate", async (message) => {
 
 client.on("interactionCreate", async (interaction) => {
   if (interaction.isButton()) {
-    // CREATE TICKET
     if (interaction.customId === "create_ticket") {
       try {
         const guild = interaction.guild;
@@ -97,6 +150,7 @@ client.on("interactionCreate", async (interaction) => {
           name: `ticket-${interaction.user.username}`.toLowerCase(),
           type: ChannelType.GuildText,
           parent: TICKET_CATEGORY,
+          topic: `owner:${interaction.user.id};type:premium`,
           permissionOverwrites: [
             {
               id: guild.id,
@@ -120,6 +174,8 @@ client.on("interactionCreate", async (interaction) => {
             }
           ]
         });
+
+        console.log("PREMIUM TICKET CREATED:", channel.id, channel.topic);
 
         ticketOwners[channel.id] = interaction.user.id;
 
@@ -156,7 +212,76 @@ client.on("interactionCreate", async (interaction) => {
       return;
     }
 
-    // SAVE ORDER INFO
+    if (interaction.customId === "create_car_ticket") {
+      try {
+        const guild = interaction.guild;
+
+        const channel = await guild.channels.create({
+          name: `bil-${interaction.user.username}`.toLowerCase(),
+          type: ChannelType.GuildText,
+          parent: CAR_TICKET_CATEGORY,
+          topic: `owner:${interaction.user.id};type:car`,
+          permissionOverwrites: [
+            {
+              id: guild.id,
+              deny: [PermissionsBitField.Flags.ViewChannel]
+            },
+            {
+              id: interaction.user.id,
+              allow: [
+                PermissionsBitField.Flags.ViewChannel,
+                PermissionsBitField.Flags.SendMessages,
+                PermissionsBitField.Flags.ReadMessageHistory
+              ]
+            },
+            {
+              id: SELLER_ROLE_ID,
+              allow: [
+                PermissionsBitField.Flags.ViewChannel,
+                PermissionsBitField.Flags.SendMessages,
+                PermissionsBitField.Flags.ReadMessageHistory
+              ]
+            }
+          ]
+        });
+
+        console.log("CAR TICKET CREATED:", channel.id, channel.topic);
+
+        ticketOwners[channel.id] = interaction.user.id;
+
+        const saveButton = new ButtonBuilder()
+          .setCustomId("save_car_order")
+          .setLabel("Spara bilorder")
+          .setStyle(ButtonStyle.Success);
+
+        const closeButton = new ButtonBuilder()
+          .setCustomId("close_ticket")
+          .setLabel("Stäng Ticket")
+          .setStyle(ButtonStyle.Danger);
+
+        const row = new ActionRowBuilder().addComponents(saveButton, closeButton);
+
+        await channel.send({
+          content: `🚗 Hej ${interaction.user}, skriv vad du behöver hjälp med.`,
+          components: [row]
+        });
+
+        await interaction.reply({
+          content: "✅ Bil-ticket skapad!",
+          ephemeral: true
+        });
+      } catch (error) {
+        console.log("Fel när bil-ticket skapades:", error);
+        if (!interaction.replied && !interaction.deferred) {
+          await interaction.reply({
+            content: "❌ Något gick fel när bil-ticketen skulle skapas.",
+            ephemeral: true
+          });
+        }
+      }
+      return;
+    }
+
     if (interaction.customId === "save_order_info") {
       try {
         if (!interaction.member.roles.cache.has(SELLER_ROLE_ID)) {
@@ -219,10 +344,55 @@ client.on("interactionCreate", async (interaction) => {
       return;
     }
 
-    // CLOSE TICKET
+    if (interaction.customId === "save_car_order") {
+      try {
+        if (!interaction.member.roles.cache.has(SELLER_ROLE_ID)) {
+          await interaction.reply({
+            content: "❌ Endast säljare kan spara bilorder.",
+            ephemeral: true
+          });
+          return;
+        }
+
+        const modal = new ModalBuilder()
+          .setCustomId("car_order_modal")
+          .setTitle("Bil Order");
+
+        const priceInput = new TextInputBuilder()
+          .setCustomId("price")
+          .setLabel("Pris")
+          .setStyle(TextInputStyle.Short)
+          .setRequired(true);
+
+        const paymentInput = new TextInputBuilder()
+          .setCustomId("payment")
+          .setLabel("Betalning")
+          .setStyle(TextInputStyle.Short)
+          .setRequired(true);
+
+        modal.addComponents(
+          new ActionRowBuilder().addComponents(priceInput),
+          new ActionRowBuilder().addComponents(paymentInput)
+        );
+
+        await interaction.showModal(modal);
+      } catch (error) {
+        console.log("Fel i save_car_order:", error);
+        if (!interaction.replied && !interaction.deferred) {
+          await interaction.reply({
+            content: "❌ Något gick fel när bilorder-rutan skulle öppnas.",
+            ephemeral: true
+          });
+        }
+      }
+      return;
+    }
+
     if (interaction.customId === "close_ticket") {
       try {
-        const ownerId = ticketOwners[interaction.channel.id];
+        console.log("CLOSE TICKET TOPIC:", interaction.channel.topic);
+
+        const ownerId = getTicketOwnerId(interaction.channel);
 
         if (!ownerId) {
           await interaction.reply({
@@ -232,11 +402,11 @@ client.on("interactionCreate", async (interaction) => {
           return;
         }
 
-        const order = ticketOrders[interaction.channel.id];
+        const order = getOrderByChannelId(interaction.channel.id);
 
         if (!order) {
           await interaction.reply({
-            content: "❌ Ingen orderinfo är sparad ännu. Be en säljare klicka på **Spara orderinfo** först.",
+            content: "❌ Ingen orderinfo är sparad ännu. Be en säljare klicka på **Spara orderinfo** eller **Spara bilorder** först.",
             ephemeral: true
           });
           return;
@@ -266,10 +436,9 @@ client.on("interactionCreate", async (interaction) => {
       return;
     }
 
-    // STAR BUTTON
     if (interaction.customId.startsWith("star_")) {
       try {
-        const ownerId = ticketOwners[interaction.channel.id];
+        const ownerId = getTicketOwnerId(interaction.channel);
 
         if (!ownerId) {
           await interaction.reply({
@@ -319,7 +488,6 @@ client.on("interactionCreate", async (interaction) => {
   }
 
   if (interaction.isModalSubmit()) {
-    // ORDER INFO MODAL
     if (interaction.customId === "order_info_modal") {
       try {
         if (!interaction.member.roles.cache.has(SELLER_ROLE_ID)) {
@@ -330,7 +498,7 @@ client.on("interactionCreate", async (interaction) => {
           return;
         }
 
-        const ownerId = ticketOwners[interaction.channel.id];
+        const ownerId = getTicketOwnerId(interaction.channel);
 
         if (!ownerId) {
           await interaction.reply({
@@ -350,6 +518,7 @@ client.on("interactionCreate", async (interaction) => {
 
         const order = {
           id: orderNumber,
+          type: "premium",
           customer: ownerId,
           product,
           price,
@@ -396,10 +565,80 @@ client.on("interactionCreate", async (interaction) => {
       return;
     }
 
-    // REVIEW MODAL
+    if (interaction.customId === "car_order_modal") {
+      try {
+        if (!interaction.member.roles.cache.has(SELLER_ROLE_ID)) {
+          await interaction.reply({
+            content: "❌ Endast säljare kan spara bilorder.",
+            ephemeral: true
+          });
+          return;
+        }
+
+        const ownerId = getTicketOwnerId(interaction.channel);
+
+        if (!ownerId) {
+          await interaction.reply({
+            content: "❌ Kunde inte hitta kunden för denna ticket.",
+            ephemeral: true
+          });
+          return;
+        }
+
+        const price = interaction.fields.getTextInputValue("price");
+        const payment = interaction.fields.getTextInputValue("payment");
+
+        const orders = loadOrders();
+        const orderNumber = orders.length + 1;
+
+        const order = {
+          id: orderNumber,
+          type: "car",
+          customer: ownerId,
+          price,
+          payment,
+          seller: interaction.user.id,
+          ticketChannelId: interaction.channel.id,
+          date: new Date().toISOString()
+        };
+
+        orders.push(order);
+        saveOrders(orders);
+        ticketOrders[interaction.channel.id] = order;
+
+        const embed = new EmbedBuilder()
+          .setTitle(`🚗 Bil Order Completed #${order.id}`)
+          .setColor("#7a3cff")
+          .addFields(
+            { name: "👤 Kund", value: `<@${order.customer}>`, inline: true },
+            { name: "💰 Pris", value: order.price, inline: true },
+            { name: "💳 Betalning", value: order.payment, inline: true },
+            { name: "🧑 Säljare", value: `<@${order.seller}>`, inline: true }
+          )
+          .setTimestamp();
+
+        const carOrderChannel = await client.channels.fetch(CAR_ORDER_CHANNEL);
+        await carOrderChannel.send({ embeds: [embed] });
+
+        await interaction.reply({
+          content: `✅ Bilorder #${order.id} sparad.`,
+          ephemeral: true
+        });
+      } catch (error) {
+        console.log("Fel när bilorder skulle sparas:", error);
+        if (!interaction.replied && !interaction.deferred) {
+          await interaction.reply({
+            content: "❌ Något gick fel när bilordern skulle sparas.",
+            ephemeral: true
+          });
+        }
+      }
+      return;
+    }
+
     if (interaction.customId.startsWith("review_")) {
       try {
-        const ownerId = ticketOwners[interaction.channel.id];
+        const ownerId = getTicketOwnerId(interaction.channel);
 
         if (!ownerId) {
           await interaction.reply({
@@ -419,7 +658,7 @@ client.on("interactionCreate", async (interaction) => {
 
         const stars = Number(interaction.customId.split("_")[1]);
         const reviewText = interaction.fields.getTextInputValue("review_text");
-        const order = ticketOrders[interaction.channel.id];
+        const order = getOrderByChannelId(interaction.channel.id);
 
         if (!order) {
           await interaction.reply({
@@ -436,11 +675,21 @@ client.on("interactionCreate", async (interaction) => {
           .setColor("#7a3cff")
           .setDescription(`${"⭐".repeat(stars)}\n\n"${reviewText}"`)
           .addFields(
-            { name: "📦 Produkt", value: order.product, inline: true },
-            { name: "💰 Pris", value: order.price, inline: true },
-            { name: "💳 Betalning", value: order.payment, inline: true },
-            { name: "👤 Kund", value: `<@${order.customer}>`, inline: true },
-            { name: "🧑 Säljare", value: `<@${order.seller}>`, inline: true }
+            ...(order.type === "premium"
+              ? [
+                  { name: "📦 Produkt", value: order.product, inline: true },
+                  { name: "💰 Pris", value: order.price, inline: true },
+                  { name: "💳 Betalning", value: order.payment, inline: true },
+                  { name: "👤 Kund", value: `<@${order.customer}>`, inline: true },
+                  { name: "🧑 Säljare", value: `<@${order.seller}>`, inline: true }
+                ]
+              : [
+                  { name: "🚗 Avdelning", value: "Bil", inline: true },
+                  { name: "💰 Pris", value: order.price, inline: true },
+                  { name: "💳 Betalning", value: order.payment, inline: true },
+                  { name: "👤 Kund", value: `<@${order.customer}>`, inline: true },
+                  { name: "🧑 Säljare", value: `<@${order.seller}>`, inline: true }
+                ])
           )
           .setTimestamp();
 
